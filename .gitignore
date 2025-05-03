@@ -1,0 +1,4 @@
+.DS_Store
+.idea/
+
+app/catboost_model.cbm

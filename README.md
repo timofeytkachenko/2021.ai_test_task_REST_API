@@ -1,0 +1,1 @@
+Download **catboost_model.cbm** from [Google Drive](https://drive.google.com/file/d/142trrBb--OJh-N11n_CrtzGQbJtWML-T/view?usp=sharing) and place it in the *app* directory.
