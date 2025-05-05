@@ -9,7 +9,6 @@ import pandas as pd
 from catboost import CatBoostClassifier, Pool
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.encoders import jsonable_encoder
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, field_validator
 
@@ -39,7 +38,7 @@ CATEGORICAL_FEATURES = [
     "education_marital",
     "month_weekday",
     "season",
-    "loan_burden_score",
+    "has_credit",
 ]
 
 # Create validation lists
@@ -137,7 +136,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Bank Marketing Prediction API",
     description="API for predicting customer subscription to bank term deposit",
-    version="1.0.2",
+    version="1.0.3",
     lifespan=lifespan,
 )
 
@@ -152,6 +151,7 @@ class CustomerData(BaseModel):
     )
     marital_status: str = Field(..., description="Marital status", examples=["married"])
     education: str = Field(..., description="Education level", examples=["university"])
+    has_credit: str = Field(..., description="Has credit in default", examples=["no"])
     housing_loan: str = Field(..., description="Has housing loan", examples=["yes"])
     personal_loan: str = Field(..., description="Has personal loan", examples=["no"])
     contact_mode: str = Field(
@@ -180,7 +180,13 @@ class CustomerData(BaseModel):
     cons_price_index: float = Field(
         ..., description="Consumer price index", examples=[93.2]
     )
+    cons_conf_index: float = Field(
+        ..., description="Consumer confidence index", examples=[-36.4]
+    )
     euri_3_month: float = Field(..., description="Euribor 3 month rate", examples=[0.6])
+    nb_employees: float = Field(
+        ..., description="Number of employees (quarterly indicator)", examples=[5099.1]
+    )
 
     @field_validator("age")
     def validate_age(cls, v):
@@ -210,12 +216,13 @@ class CustomerData(BaseModel):
             raise ValueError(f"Education must be one of {VALID_EDUCATION_LEVELS}")
         return normalized
 
-    @field_validator("housing_loan", "personal_loan")
+    @field_validator("housing_loan", "personal_loan", "has_credit")  # Added has_credit
     def validate_yes_no(cls, v, info):
         normalized = v.lower()
-        if normalized not in ["yes", "no"]:
-            raise ValueError(f"{info.field_name} must be 'yes' or 'no'")
+        if normalized not in ["yes", "no", "unknown"]:
+            raise ValueError(f"{info.field_name} must be 'yes', 'no', or 'unknown'")
         return normalized
+
 
     @field_validator("contact_mode")
     def validate_contact_mode(cls, v):
@@ -277,11 +284,25 @@ class CustomerData(BaseModel):
             raise ValueError("Consumer price index must be between 80.0 and 110.0")
         return v
 
+    @field_validator("cons_conf_index")  # Added validator for consumer confidence index
+    def validate_cons_conf_index(cls, v):
+        # Typical range for consumer confidence index
+        if not -50.0 <= v <= 20.0:
+            raise ValueError("Consumer confidence index must be between -50.0 and 20.0")
+        return v
+
     @field_validator("euri_3_month")
     def validate_euri_3_month(cls, v):
         # Typical range for Euribor 3 month rate
         if not -2.0 <= v <= 10.0:
             raise ValueError("Euribor 3 month rate must be between -2.0 and 10.0")
+        return v
+
+    @field_validator("nb_employees")  # Added validator for number of employees
+    def validate_nb_employees(cls, v):
+        # Typical range for number of employees (quarterly indicator)
+        if not 4000.0 <= v <= 6500.0:
+            raise ValueError("Number of employees must be between 4000.0 and 6500.0")
         return v
 
 
@@ -352,11 +373,6 @@ def add_engineered_features(df: pd.DataFrame) -> pd.DataFrame:
 
     # === Month → Season mapping ===
     df["season"] = df["month"].map(MONTH_TO_SEASON)
-
-    # === Loan burden score ===
-    df["loan_burden_score"] = (df["housing_loan"] == "yes").astype(int) + (
-        df["personal_loan"] == "yes"
-    ).astype(int)
 
     # === Volatility score ===
     df["volatility_score"] = (

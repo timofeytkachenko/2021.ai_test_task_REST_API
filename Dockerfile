@@ -8,7 +8,7 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     MODEL_PATH="catboost_model.cbm" \
-    PREDICTION_THRESHOLD="0.487" \
+    PREDICTION_THRESHOLD="0.494" \
     LOG_LEVEL="INFO"
 
 # Install system dependencies
