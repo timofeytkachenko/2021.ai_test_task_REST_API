@@ -12,7 +12,7 @@ The API is containerized using Docker and can be easily deployed using Docker Co
 
 The prediction service uses a CatBoost classifier, an efficient implementation of gradient boosting on decision trees. 
 
-Download **catboost_model.cbm** from [Google Drive](https://drive.google.com/file/d/142trrBb--OJh-N11n_CrtzGQbJtWML-T/view?usp=sharing) and place it in the *app* directory.
+Download **catboost_model.cbm** from [Google Drive](https://drive.google.com/file/d/1nPxZG83z2rtZHkHT9qVCriwaYN8dOzOB/view?usp=drive_link) and place it in the *app* directory.
 
 ## Features
 
@@ -36,21 +36,24 @@ Download **catboost_model.cbm** from [Google Drive](https://drive.google.com/fil
 
 The API accepts customer data with the following attributes:
 
-- `age`: Customer age (18-100)
-- `occupation`: Type of job/occupation
-- `marital_status`: Marital status
-- `education`: Education level
-- `housing_loan`: Has housing loan (yes/no)
-- `personal_loan`: Has personal loan (yes/no) 
-- `contact_mode`: Contact communication mode
-- `month`: Last contact month (3-letter code)
-- `week_day`: Last contact day of the week (3-letter code)
-- `last_contact_duration`: Last contact duration in seconds
-- `contacts_per_campaign`: Number of contacts during this campaign
-- `previous_outcome`: Outcome of previous campaign
-- `emp_var_rate`: Employment variation rate
-- `cons_price_index`: Consumer price index
-- `euri_3_month`: Euribor 3 month rate
+- `age`: Customer age (≤100)
+- `occupation`: Type of job/occupation (housemaid, services, admin., blue-collar, technician, retired, management, unemployed, self-employed, unknown, entrepreneur, student)
+- `marital_status`: Marital status (married, single, divorced, unknown)
+- `education`: Education level (basic.4y, high.school, basic.6y, basic.9y, professional.course, unknown, university.degree, illiterate)
+- `has_credit`: Has credit in default (yes/no/unknown)
+- `housing_loan`: Has housing loan (yes/no/unknown)
+- `personal_loan`: Has personal loan (yes/no/unknown) 
+- `contact_mode`: Contact communication mode (cellular, telephone)
+- `month`: Last contact month (3-letter code: jan, mar, apr, may, jun, jul, aug, sep, oct, nov, dec)
+- `week_day`: Last contact day of the week (3-letter code: mon, tue, wed, thu, fri)
+- `last_contact_duration`: Last contact duration in seconds (<3600)
+- `contacts_per_campaign`: Number of contacts during this campaign (<50)
+- `previous_outcome`: Outcome of previous campaign (nonexistent, failure, success)
+- `emp_var_rate`: Employment variation rate (-10.0 to 10.0)
+- `cons_price_index`: Consumer price index (80.0 to 110.0)
+- `cons_conf_index`: Consumer confidence index (-50.0 to 20.0)
+- `euri_3_month`: Euribor 3 month rate (-2.0 to 10.0)
+- `nb_employees`: Number of employees - quarterly indicator (4000.0 to 6500.0)
 
 ## Setup and Deployment
 
@@ -65,7 +68,7 @@ Create a `.env` file with the following variables:
 
 ```
 MODEL_PATH=catboost_model.cbm
-PREDICTION_THRESHOLD=0.487
+PREDICTION_THRESHOLD=0.494
 LOG_LEVEL=INFO
 ```
 
@@ -82,25 +85,28 @@ LOG_LEVEL=INFO
 
 ```json
 {
-  "customers": [
-    {
-      "age": 41,
-      "occupation": "technician",
-      "marital_status": "married",
-      "education": "university.degree",
-      "housing_loan": "yes",
-      "personal_loan": "no",
-      "contact_mode": "cellular",
-      "month": "may",
-      "week_day": "mon",
-      "last_contact_duration": 180,
-      "contacts_per_campaign": 2,
-      "previous_outcome": "success",
-      "emp_var_rate": -0.1,
-      "cons_price_index": 93.2,
-      "euri_3_month": 0.6
-    }
-  ]
+    "customers": [
+        {
+            "age": 41,
+            "occupation": "technician",
+            "marital_status": "married",
+            "education": "university.degree",
+            "has_credit": "no",
+            "housing_loan": "yes",
+            "personal_loan": "no",
+            "contact_mode": "cellular",
+            "month": "may",
+            "week_day": "mon",
+            "last_contact_duration": 180,
+            "contacts_per_campaign": 2,
+            "previous_outcome": "success",
+            "emp_var_rate": -0.1,
+            "cons_price_index": 93.2,
+            "cons_conf_index": -36.4,
+            "euri_3_month": 0.6,
+            "nb_employees": 5099.1
+        }
+    ]
 }
 ```
 
@@ -108,17 +114,17 @@ LOG_LEVEL=INFO
 
 ```json
 {
-  "predictions": [
-    {
-      "customer_index": 0,
-      "probability": 0.72,
-      "prediction": 1,
-      "prediction_label": "yes"
-    }
-  ],
-  "model_version": "catboost_model.cbm",
-  "threshold_used": 0.487,
-  "processing_time_ms": 15.3
+    "predictions": [
+        {
+            "customer_index": 0,
+            "probability": 0.7065408241747142,
+            "prediction": 1,
+            "prediction_label": "yes"
+        }
+    ],
+    "model_version": "catboost_model.cbm",
+    "threshold_used": 0.494,
+    "processing_time_ms": 13.617992401123047
 }
 ```
 
